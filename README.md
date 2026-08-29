@@ -1,339 +1,180 @@
-# AI Email Management Application
+# AuraMail — Intelligent Email Assistant
 
-A full-stack AI-powered email client that connects to **Gmail via Google OAuth 2.0**. Browse, search, and manage your real inbox — plus get AI-generated summaries and reply drafts.
+AuraMail is a full-stack, AI-powered Gmail client. It brings inbox management, secure Google OAuth connection, AI summaries, and contextual reply drafting into one focused workspace.
 
----
+## Project Name
 
-## Table of Contents
+AuraMail — Intelligent Email Assistant
 
-1. [Tech Stack](#tech-stack)
-2. [Prerequisites](#prerequisites)
-3. [Project Structure](#project-structure)
-4. [Setup & Installation](#setup)
-5. [Environment Variables](#env-vars)
-6. [Running Locally](#running-locally)
-7. [API Endpoints](#api-endpoints)
-8. [Development Workflow](#dev-workflow)
-9. [Testing](#testing)
-10. [Production Deployment](#production)
-11. [FAQ & Troubleshooting](#faq)
+## Problem Statement
 
----
+Email threads can be long, repetitive, and difficult to action quickly. AuraMail helps users manage Gmail messages efficiently by surfacing concise AI-generated summaries, key points, action items, and deadlines, while also creating context-aware reply drafts in the desired tone. This reduces the time spent reading long conversations and writing routine responses.
 
-## Tech Stack
+## Features
 
-| Layer | Technology |
-|-------|-----------|
-| **Frontend** | Next.js (App Router) · React · Tailwind CSS · Zustand · Axios · TanStack Query · lucide-react |
-| **Backend** | Node.js · Express · MongoDB (Mongoose) · JWT · Helmet · CORS · Morgan · express-validator · express-rate-limit |
-| **Auth** | Google OAuth 2.0 (server-side flow — tokens never reach the browser) |
-| **AI** | Provider-agnostic service (OpenAI / Gemini / any compatible API) |
-| **Background Jobs** | BullMQ + Redis *(optional — graceful fallback when unavailable)* |
-| **Realtime** | Socket.IO |
+### Core features
 
----
+- Secure user registration and login using JWT-based authentication.
+- Gmail connection through Google OAuth 2.0; OAuth tokens remain server-side and are encrypted at rest.
+- Inbox browsing, folder navigation, search, email/thread reading, and pagination.
+- Message actions: star, archive, mark read/unread, delete, and send email.
+- Threaded conversations and replies sent through Gmail.
+- Compose, save, edit, delete, and send drafts.
+- Responsive interface with dark mode and mobile navigation.
 
-## Prerequisites
+### AI and bonus features
 
-Before you begin, ensure you have the following installed:
+- AI thread or message summaries with key points, action items, questions, and deadlines.
+- AI-generated contextual reply drafts with professional, friendly, concise, urgent, or casual tone options.
+- Support for OpenAI, Gemini, and OpenAI-compatible AI providers.
+- Sanitized HTML email rendering to reduce unsafe content risks.
+- Optional Redis/BullMQ background jobs for AI and email-sync work, with a synchronous fallback.
+- Socket.IO support for real-time events, activity logging, request validation, rate limiting, CORS, Helmet, compression, and structured error handling.
 
-- **Node.js ≥ 20** (LTS) — [download](https://nodejs.org/)
-- **npm** (bundled with Node.js)
-- **MongoDB** — local install (`mongod`) **or** a [MongoDB Atlas](https://www.mongodb.com/atlas) URI
-- **Git** — [download](https://git-scm.com/)
+## Technology Stack
 
-**Optional:**
+| Area | Technologies |
+| --- | --- |
+| Frontend | Next.js 16, React 19, Tailwind CSS, Zustand, TanStack Query, Axios, React Hot Toast, Lucide React |
+| Backend | Node.js, Express 5, Mongoose, JWT, bcrypt, Socket.IO |
+| Database | MongoDB / MongoDB Atlas |
+| Email and authentication | Gmail API and Google OAuth 2.0 |
+| AI services | OpenAI API, Google Gemini API, or an OpenAI-compatible API |
+| Background processing | BullMQ and Redis (optional) |
+| Security and validation | Helmet, CORS, express-rate-limit, express-validator, DOMPurify |
+| Deployment | Vercel (frontend) and Render (backend API) |
 
-- **Redis** — only required if you want BullMQ background jobs
-- **Google Cloud project** — needed for Gmail OAuth (see [Step 4](#step-4-google-oauth) below)
-- **AI provider API key** — e.g. OpenAI, Google Gemini
+## Screenshots
 
----
+### Landing page
 
-## Project Structure
+![AuraMail homepage](docs/screenshots/home.png)
 
-```
-Intelligent Email Assistant/
-├── client/                  # Next.js frontend
-│   ├── src/
-│   │   ├── app/             # App Router pages
-│   │   ├── components/      # Reusable UI components
-│   │   ├── store/           # Zustand state stores
-│   │   └── services/        # API client & Socket.IO
-│   ├── .env.local           # Frontend env vars (public only)
-│   └── package.json
-│
-├── server/                  # Express backend
-│   ├── src/
-│   │   ├── config/          # env.js, db.js, socket.js
-│   │   ├── routes/          # Express route definitions
-│   │   ├── controllers/     # Thin request handlers
-│   │   ├── services/        # Business logic layer
-│   │   ├── integrations/    # Gmail API wrapper
-│   │   ├── middleware/      # Auth, validation, errors, rate-limit
-│   │   ├── models/          # Mongoose schemas
-│   │   ├── queues/          # BullMQ workers (optional)
-│   │   └── index.js         # Server entry point
-│   ├── .env                 # Backend env vars (secrets)
-│   ├── .env.example         # Template with placeholders
-│   └── package.json
-│
-├── spec.md                  # Full project specification
-└── README.md                # ← You are here
-```
 
----
+## Live Demo
 
-## Setup & Installation
+The deployed frontend is available here:
 
-### Step 1 — Clone the repository
+`https://intelligent-email-assistant-nu.vercel.app/`
 
-```bash
-git clone <your-repo-url>
-cd "Intelligent Email Assistant"
-```
+## Backend
 
-### Step 2 — Install backend dependencies
+The deployed backend API is available here:
 
-```bash
-cd server
-npm install
-```
+`https://intelligent-email-assistant-j8tu.onrender.com`
 
-### Step 3 — Install frontend dependencies
+The API base URL is:
 
-```bash
-cd ../client
-npm install
-```
+`https://intelligent-email-assistant-j8tu.onrender.com/api`
 
-### Step 4 — Google OAuth Setup (for Gmail integration) <a name="step-4-google-oauth"></a>
+The API health endpoint is available at `/api/health`.
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project (or use an existing one)
-3. Enable the **Gmail API** under "APIs & Services → Library"
-4. Go to "APIs & Services → Credentials" → **Create Credentials → OAuth Client ID**
-   - Application type: **Web application**
-   - Authorized redirect URIs: `http://localhost:5000/api/gmail/oauth/callback`
-5. Copy the **Client ID** and **Client Secret** into `server/.env`
-6. Configure the **OAuth consent screen** (test mode is fine for development)
+## Setup Instructions
 
-### Step 5 — Configure environment variables
+### Prerequisites
 
-```bash
-cd ../server
-cp .env.example .env
-# Edit .env with your actual values (see table below)
-```
+- Node.js 20 or later
+- npm
+- MongoDB locally or a MongoDB Atlas database
+- A Google Cloud project with the Gmail API enabled
+- An AI provider API key (OpenAI, Gemini, or compatible provider)
+- Redis only if you want BullMQ background jobs
 
-```bash
-cd ../client
-cp .env.example .env.local
-# Usually no changes needed for local dev
-```
+### Installation
 
----
+1. Clone the repository and enter it.
+
+   ```bash
+   git clone <repository-url>
+   cd "Intelligent Email Assistant"
+   ```
+
+2. Install backend dependencies.
+
+   ```bash
+   cd server
+   npm install
+   ```
+
+3. Install frontend dependencies.
+
+   ```bash
+   cd ../client
+   npm install
+   ```
+
+4. Create local environment files from the supplied examples.
+
+   ```bash
+   cd ../server
+   cp .env.example .env
+
+   cd ../client
+   cp .env.example .env.local
+   ```
+
+5. Configure the environment variables listed below. Do not put real credentials in either example file.
+
+6. In Google Cloud Console, create a **Web application** OAuth client, enable the Gmail API, and add this local authorized redirect URI:
+
+   ```text
+   http://localhost:5000/api/gmail/oauth/callback
+   ```
+
+7. Start MongoDB, or configure a MongoDB Atlas connection string in `server/.env`.
+
+8. Run the backend in one terminal.
+
+   ```bash
+   cd server
+   npm run dev
+   ```
+
+9. Run the frontend in another terminal.
+
+   ```bash
+   cd client
+   npm run dev
+   ```
+
+10. Open `http://localhost:3000`, register or log in, then connect Gmail from the integration flow.
+
+### Production deployment
+
+- Deploy `server` to Render with `npm install` as the build command, `npm start` as the start command, and `/api/health` as the health-check path.
+- Deploy `client` to Vercel with `client` set as the root directory.
+- Set the frontend public API URL to the deployed backend URL ending in `/api`.
+- Update the backend client origin and Google OAuth redirect URI to the deployed Vercel and backend URLs respectively.
+
+See [deploy.md](deploy.md) for the full Render and Vercel deployment guide.
 
 ## Environment Variables
 
+Copy the supplied `.env.example` files; configure these variable names locally or in your hosting provider. Values are deliberately not shown here.
+
 ### Server (`server/.env`)
 
-| Variable | Example Value | Description |
-|----------|--------------|-------------|
-| `PORT` | `5000` | Express server port |
-| `CLIENT_URL` | `http://localhost:3000` | Frontend origin (CORS) |
-| `MONGODB_URI` | `mongodb://localhost:27017/email-assistant` | MongoDB connection string |
-| `JWT_SECRET` | `change-me-to-random-string` | JWT signing secret |
-| `GOOGLE_CLIENT_ID` | `xxx.apps.googleusercontent.com` | From Google Cloud Console |
-| `GOOGLE_CLIENT_SECRET` | `GOCSPX-xxx` | From Google Cloud Console |
-| `GOOGLE_REDIRECT_URI` | `http://localhost:5000/api/gmail/oauth/callback` | Must match Google Console |
-| `CREDENTIAL_ENCRYPTION_KEY` | 64-char hex string | AES-256 key for encrypting OAuth tokens |
-| `AI_PROVIDER` | `openai` or `gemini` | AI provider identifier |
-| `AI_API_KEY` | `sk-xxx` | Provider API key |
-| `AI_MODEL` | `gpt-4o-mini` | Model name |
-| `REDIS_URL` | `redis://localhost:6379` | *(Optional)* For BullMQ background jobs |
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `NODE_ENV` | No | Runtime environment |
+| `PORT` | No | Backend server port |
+| `CLIENT_URL` | Yes in production | Allowed frontend origin |
+| `MONGODB_URI` | Yes | MongoDB connection string |
+| `JWT_SECRET` | Yes | JWT signing secret |
+| `JWT_EXPIRES_IN` | No | JWT expiration period |
+| `GOOGLE_CLIENT_ID` | Yes for Gmail | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | Yes for Gmail | Google OAuth client secret |
+| `GOOGLE_REDIRECT_URI` | Yes for Gmail | Google OAuth callback URL |
+| `CREDENTIAL_ENCRYPTION_KEY` | Yes for Gmail | Key used to encrypt stored OAuth credentials |
+| `AI_PROVIDER` | Yes for AI features | Selected AI provider |
+| `AI_BASE_URL` | Only for compatible providers | OpenAI-compatible API base URL |
+| `AI_API_KEY` | Yes for AI features | AI provider credential |
+| `AI_MODEL` | Yes for AI features | Selected AI model |
+| `REDIS_URL` | No | Redis connection for BullMQ |
 
 ### Client (`client/.env.local`)
 
-| Variable | Value | Description |
-|----------|-------|-------------|
-| `NEXT_PUBLIC_API_URL` | `http://localhost:5000/api` | Backend API base URL |
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `NEXT_PUBLIC_API_URL` | Yes | Public backend API base URL |
 
-> ⚠️ **Never commit `.env` files.** Only `.env.example` with placeholders should be in version control.
-
----
-
-## Running Locally
-
-### 1. Start MongoDB
-
-```bash
-# If using local MongoDB:
-mongod
-# Or use MongoDB Atlas (just set MONGODB_URI in .env)
-```
-
-### 2. Start the backend server
-
-```bash
-cd server
-npm run dev
-```
-
-You should see:
-```
-Server running on port 5000 [development]
-MongoDB connected: localhost
-```
-
-### 3. Start the frontend
-
-```bash
-cd client
-npm run dev
-```
-
-Open **http://localhost:3000** in your browser.
-
-### Quick start (both together)
-
-```bash
-# From the project root, install concurrently globally:
-npm install -g concurrently
-
-# Then run:
-concurrently "npm run dev --prefix server" "npm run dev --prefix client"
-```
-
----
-
-## API Endpoints
-
-### Health & Auth
-| Method | Endpoint | Description |
-|--------|---------|-------------|
-| GET | `/api/health` | System health check |
-| POST | `/api/auth/register` | Register a new user |
-| POST | `/api/auth/login` | Login |
-| POST | `/api/auth/logout` | Logout |
-| GET | `/api/auth/me` | Current user profile |
-
-### Gmail OAuth
-| Method | Endpoint | Description |
-|--------|---------|-------------|
-| GET | `/api/gmail/oauth/start` | Start Google OAuth flow |
-| GET | `/api/gmail/oauth/callback` | Google OAuth callback |
-| GET | `/api/gmail/status` | Gmail connection status |
-| POST | `/api/gmail/reconnect` | Reconnect Gmail |
-| POST | `/api/gmail/disconnect` | Disconnect Gmail |
-
-### Emails
-| Method | Endpoint | Description |
-|--------|---------|-------------|
-| GET | `/api/emails` | List inbox messages |
-| GET | `/api/emails/search` | Search emails |
-| GET | `/api/emails/:id` | Get single email |
-| POST | `/api/emails/:id/read` | Mark as read |
-| POST | `/api/emails/:id/unread` | Mark as unread |
-| POST | `/api/emails/:id/star` | Star message |
-| DELETE | `/api/emails/:id/star` | Unstar message |
-| POST | `/api/emails/:id/archive` | Archive message |
-| DELETE | `/api/emails/:id` | Delete message |
-| POST | `/api/emails/send` | Send new email |
-
-### Threads
-| Method | Endpoint | Description |
-|--------|---------|-------------|
-| GET | `/api/threads/:threadId` | Get full thread |
-| POST | `/api/threads/:threadId/reply` | Reply to thread |
-
-### AI
-| Method | Endpoint | Description |
-|--------|---------|-------------|
-| POST | `/api/ai/summarize` | Summarize email/thread |
-| POST | `/api/ai/generate-reply` | Generate AI reply draft |
-
-### Drafts
-| Method | Endpoint | Description |
-|--------|---------|-------------|
-| POST | `/api/drafts` | Create draft |
-| GET | `/api/drafts` | List drafts |
-| PUT | `/api/drafts/:id` | Update draft |
-| DELETE | `/api/drafts/:id` | Delete draft |
-| POST | `/api/drafts/:id/send` | Send draft |
-
-### Activity
-| Method | Endpoint | Description |
-|--------|---------|-------------|
-| GET | `/api/activity` | List activity history |
-| GET | `/api/activity/:id` | Get activity detail |
-
----
-
-## Development Workflow
-
-| Task | Command | Notes |
-|------|---------|-------|
-| Start backend (auto-restart) | `cd server && npm run dev` | Uses `nodemon` |
-| Start frontend | `cd client && npm run dev` | Next.js dev server on :3000 |
-| Add a new route | Create in `server/src/routes/`, register in `index.js` | Controller → Service pattern |
-| Add a UI component | Create in `client/src/components/` | Use Zustand stores for state |
-| Enable background jobs | Set `REDIS_URL` in `.env`, run `redis-server` | BullMQ auto-initializes |
-
----
-
-## Testing
-
-### Backend tests
-```bash
-cd server
-npm install --save-dev jest supertest
-npm test
-```
-
-### Frontend tests
-```bash
-cd client
-npm test
-```
-
----
-
-## Production Deployment
-
-1. **Build frontend:**
-   ```bash
-   cd client && npm run build && npm start
-   ```
-
-2. **Start backend:**
-   ```bash
-   cd server && npm start
-   ```
-
-3. Update all environment variables for production (real Google OAuth URIs, HTTPS, etc.)
-4. Use a process manager (PM2) or containerize with Docker
-5. Terminate TLS at your reverse proxy (NGINX, CloudFlare, etc.)
-
----
-
-## FAQ & Troubleshooting
-
-**Q: `npm run dev` fails with "Missing script: dev"**
-A: Make sure you're in the `server/` or `client/` directory, not the project root.
-
-**Q: MongoDB connection error**
-A: Ensure MongoDB is running (`mongod`) or your Atlas URI is correct in `server/.env`.
-
-**Q: "Gmail not connected" errors**
-A: Complete the OAuth flow first — visit `/integrations` in the UI and click "Connect Gmail".
-
-**Q: AI features return errors**
-A: Check that `AI_PROVIDER`, `AI_API_KEY`, and `AI_MODEL` are set correctly in `server/.env`.
-
-**Q: Redis not available**
-A: That's fine! Background jobs fall back to synchronous execution. Redis is only needed for production-grade queue processing.
-
----
-
-*Built with ❤️ following the [spec.md](./spec.md) specification.*
